@@ -83,7 +83,7 @@ with open(FEED_FILE, "r") as stream:
                 )
 
 connection.commit()
-result = connection.execute("SELECT * FROM feeds ORDER BY date LIMIT 100")
+result = connection.execute("SELECT * FROM feeds ORDER BY date DESC LIMIT 100")
 template = jinja.get_template('template.html', globals={ "items": result })
 with open("{}/index.html".format(OUTPUT), "w") as stream:
     stream.write(template.render())
