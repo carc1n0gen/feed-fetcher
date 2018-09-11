@@ -102,3 +102,11 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+/webassets
+*.db
+
+# visual studio code
+.vscode
+
+feeds.yml
