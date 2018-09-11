@@ -59,9 +59,6 @@ with open(FEED_FILE, "r") as stream:
     for feed_url in yaml.load(stream):
         feed = feedparser.parse(feed_url)
         for item in feed["entries"]:
-            # print(time.strftime('%Y-%m-%dT%H:%M:%SZ', item["updated_parsed"]))
-            # print(item)
-            # exit(1)
             m = md5(item["link"].encode("utf-8")).hexdigest()
             result = connection.execute("SELECT * FROM feeds WHERE url_md5 = :m", { "m": m })
             if result.fetchone() is None:
@@ -77,7 +74,6 @@ with open(FEED_FILE, "r") as stream:
                         "site_url": feed["feed"]["link"],
                         "site_title": feed["feed"]["title"],
                         "date": datetime.fromtimestamp(time.mktime(item["updated_parsed"])).isoformat(),
-                        # "date": time.strftime('%Y-%m-%d %H:%M:%S %Z', item["updated_parsed"]),
                         "content": item["summary"]
                     }
                 )
@@ -85,6 +81,6 @@ with open(FEED_FILE, "r") as stream:
 connection.commit()
 result = connection.execute("SELECT * FROM feeds ORDER BY date DESC LIMIT 100")
 template = jinja.get_template('template.html', globals={ "items": result })
-with open("{}/index.html".format(OUTPUT), "w") as stream:
-    stream.write(template.render())
+with open("{}/index.html".format(OUTPUT), "wb") as stream:
+    stream.write(template.render().encode('utf-8'))
 connection.close()
