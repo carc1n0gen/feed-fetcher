@@ -62,6 +62,10 @@ with open(FEED_FILE, "r") as stream:
             m = md5(item["link"].encode("utf-8")).hexdigest()
             result = connection.execute("SELECT * FROM feeds WHERE url_md5 = :m", { "m": m })
             if result.fetchone() is None:
+                if "content" in item:
+                    content = item["content"][0]["value"]
+                else:
+                    content = item["summary"]
                 connection.execute(
                     """INSERT INTO feeds (
                         url, url_md5, title, site_url, site_title, date, content
