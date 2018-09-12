@@ -66,6 +66,11 @@ with open(FEED_FILE, "r") as stream:
                     content = item["content"][0]["value"]
                 else:
                     content = item["summary"]
+
+                if "published_parsed" in item:
+                    date = item["published_parsed"]
+                else:
+                    date = item["updated_parsed"]
                 connection.execute(
                     """INSERT INTO feeds (
                         url, url_md5, title, site_url, site_title, date, content
@@ -77,7 +82,7 @@ with open(FEED_FILE, "r") as stream:
                         "title": item["title"],
                         "site_url": feed["feed"]["link"],
                         "site_title": feed["feed"]["title"],
-                        "date": datetime.fromtimestamp(time.mktime(item["updated_parsed"])).isoformat(),
+                        "date": datetime.fromtimestamp(time.mktime(date)).isoformat(),
                         "content": item["summary"]
                     }
                 )
