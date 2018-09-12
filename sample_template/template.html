@@ -17,6 +17,24 @@
       background-color: #eee;
     }
 
+    nav {
+      margin: 1em;
+    }
+
+    nav a {
+      margin-right: .5em;
+      padding-right: .5em;
+      border-right: 1px solid #000;
+    }
+
+    nav a:last-of-type {
+      border-right: none;
+    }
+
+    .title {
+      text-align: center;
+    }
+
     h1, h2, h3, h4, h5, h6 {
       font-weight: 300;
     }
@@ -39,10 +57,14 @@
       overflow-y: scroll;
     }
 
+    main {
+      margin: 0 auto;
+      max-width: 48em;
+    }
+
     article {
       padding: 1em;
-      margin: 1em auto;
-      max-width: 48em;
+      margin: 1em 0;
       background-color: #fff;
       border: 1px solid #ddd;
       overflow-wrap: break-word;
@@ -64,17 +86,11 @@
   </style>
 </head>
 <body>
-  {% for item in items %}<article>
-    <header>
-      <a href="{{ item.url }}" target="_blank"><h1>{{ item.title }}</h1></a>
-      <p><small>Posted from <a href="{{ item.site_url }}" target="_blank">{{ item.site_title }}</a> on {{ item.date|date }}.</small></p>
-    </header>
-    <section>
-      {{ item.content | safe }}
-    </section>
-    <footer>
-      <p><small>Posted from <a href="{{ item.site_url }}" target="_blank">{{ item.site_title }}</a> on {{ item.date|date }}.</small></p>
-    </footer>
-  </article>{% endfor %}
+  <nav>
+    <a href="index.html">today</a><a href="yesterday.html">yesterday</a><a href="latest100.html">top 100</a>
+  </nav>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
 </body>
 </html>
