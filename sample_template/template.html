@@ -90,7 +90,25 @@
     <a href="index.html">today</a><a href="yesterday.html">yesterday</a><a href="latest100.html">latest 100</a>
   </nav>
   <main>
-    {% block content %}{% endblock %}
+    <h1 class="title">{{ title }}</h1>
+    {% for item in items %}<article>
+      <header>
+        <a href="{{ item.url }}" target="_blank">
+          <h1>{{ item.title }}</h1>
+        </a>
+        <p><small>Posted from <a href="{{ item.site_url }}" target="_blank">{{ item.site_title }}</a> on {{ item.date|date
+            }}.
+          </small></p>
+      </header>
+      <section>
+        {{ item.content | safe }}
+      </section>
+      <footer>
+        <p><small>Posted from <a href="{{ item.site_url }}" target="_blank">{{ item.site_title }}</a> on {{ item.date|date
+            }}.
+          </small></p>
+      </footer>
+    </article>{% endfor %}
   </main>
 </body>
 </html>

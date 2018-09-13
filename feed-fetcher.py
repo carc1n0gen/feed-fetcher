@@ -90,12 +90,12 @@ with open(FEED_FILE, "r") as stream:
 
 connection.commit()
 
+template = jinja.get_template("template.html")
 with open("{}/index.html".format(OUTPUT), "wb") as stream:
     today = connection.execute("SELECT * FROM feeds WHERE date > :today ORDER BY date DESC", {
         "today": datetime.now().strftime("%Y-%m-%d")
     })
-    template = jinja.get_template("today.html", globals={"items": today})
-    stream.write(template.render().encode("utf-8"))
+    stream.write(template.render(items=today).encode("utf-8"))
     today.close()
 
 with open("{}/yesterday.html".format(OUTPUT), "wb") as stream:
@@ -103,14 +103,12 @@ with open("{}/yesterday.html".format(OUTPUT), "wb") as stream:
         "yesterday": datetime.strftime(datetime.now() - timedelta(1), "%Y-%m-%d"),
         "today": datetime.now().strftime("%Y-%m-%d")
     })
-    template = jinja.get_template("yesterday.html", globals={"items": yesterday})
-    stream.write(template.render().encode("utf-8"))
+    stream.write(template.render(items=yesterday).encode("utf-8"))
     yesterday.close()
 
 with open("{}/latest100.html".format(OUTPUT), "wb") as stream:
     top100 = connection.execute("SELECT * FROM feeds ORDER BY date DESC LIMIT 100")
-    template = jinja.get_template("latest100.html", globals={"items": top100})
-    stream.write(template.render().encode("utf-8"))
+    stream.write(template.render(items=top100).encode("utf-8"))
     top100.close()
 
 connection.close()
