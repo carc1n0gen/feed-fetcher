@@ -95,7 +95,7 @@ with open("{}/index.html".format(OUTPUT), "wb") as stream:
     today = connection.execute("SELECT * FROM feeds WHERE date > :today ORDER BY date DESC", {
         "today": datetime.now().strftime("%Y-%m-%d")
     })
-    stream.write(template.render(items=today).encode("utf-8"))
+    stream.write(template.render(items=today, title="Today").encode("utf-8"))
     today.close()
 
 with open("{}/yesterday.html".format(OUTPUT), "wb") as stream:
@@ -103,12 +103,12 @@ with open("{}/yesterday.html".format(OUTPUT), "wb") as stream:
         "yesterday": datetime.strftime(datetime.now() - timedelta(1), "%Y-%m-%d"),
         "today": datetime.now().strftime("%Y-%m-%d")
     })
-    stream.write(template.render(items=yesterday).encode("utf-8"))
+    stream.write(template.render(items=yesterday, title="Yesterday").encode("utf-8"))
     yesterday.close()
 
 with open("{}/latest100.html".format(OUTPUT), "wb") as stream:
-    top100 = connection.execute("SELECT * FROM feeds ORDER BY date DESC LIMIT 100")
-    stream.write(template.render(items=top100).encode("utf-8"))
-    top100.close()
+    latest100 = connection.execute("SELECT * FROM feeds ORDER BY date DESC LIMIT 100")
+    stream.write(template.render(items=latest100, title="Latest 100").encode("utf-8"))
+    latest100.close()
 
 connection.close()
