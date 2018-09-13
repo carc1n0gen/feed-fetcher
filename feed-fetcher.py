@@ -74,13 +74,13 @@ if not FEED_FILE or not DATABASE or not TEMPLATE_DIR or not OUTPUT:
 #--
 
 #-
-def parse_feed(feed_url, feeds):
-    feeds.append(feedparser.parse(feed_url))
+def thread_wrapper(func, args, res):
+    res.append(func(*args))
 
 a = datetime.now()
 feeds = []
 with open(FEED_FILE, "r") as stream:
-    threads = [threading.Thread(target=parse_feed, args=(url, feeds,)) for url in yaml.load(stream)]
+    threads = [threading.Thread(target=thread_wrapper, args=(feedparser.parse, (url,), feeds,)) for url in yaml.load(stream)]
     for thread in threads:
         thread.start()
     for thread in threads:
