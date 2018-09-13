@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 import sqlite3
 import yaml
 import feedparser
+import asyncio
+import threading
 
 parser = OptionParser()
 parser.add_option("-f", "--feeds", dest="feed_file", help="Path to yaml file containing a list of feeds.")
@@ -25,90 +27,131 @@ if not FEED_FILE or not DATABASE or not TEMPLATE_DIR or not OUTPUT:
     parser.print_help()
     exit(1)
 
-connection = sqlite3.connect(DATABASE)
-connection.row_factory = sqlite3.Row
-result = connection.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='feeds'")
-if result.fetchone() is None:
-    connection.execute(
-        """CREATE TABLE feeds (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        url VARCHAR(2000),
-        url_md5 CHAR(32),
-        title VARCHAR(2000),
-        site_url VARCHAR(2000),
-        site_title VARCHAR(2000),
-        date DATETIME,
-        content TEXT )"""
-    )
-    connection.execute("CREATE UNIQUE INDEX feeds_url_md5_index ON feeds(url_md5)")
-    connection.execute(
-        """CREATE TABLE settings (
-        key VARCHAR(255) PRIMARY KEY,
-        val VARCHAR(255) )"""
-    )
-    connection.commit()
-    print("Database initialized.")
+# connection = sqlite3.connect(DATABASE)
+# connection.row_factory = sqlite3.Row
+# result = connection.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='feeds'")
+# if result.fetchone() is None:
+#     connection.execute(
+#         """CREATE TABLE feeds (
+#         id INTEGER PRIMARY KEY AUTOINCREMENT,
+#         url VARCHAR(2000),
+#         url_md5 CHAR(32),
+#         title VARCHAR(2000),
+#         site_url VARCHAR(2000),
+#         site_title VARCHAR(2000),
+#         date DATETIME,
+#         content TEXT )"""
+#     )
+#     connection.execute("CREATE UNIQUE INDEX feeds_url_md5_index ON feeds(url_md5)")
+#     connection.execute(
+#         """CREATE TABLE settings (
+#         key VARCHAR(255) PRIMARY KEY,
+#         val VARCHAR(255) )"""
+#     )
+#     connection.commit()
+#     print("Database initialized.")
 
-jinja = Environment(
-    loader=FileSystemLoader(TEMPLATE_DIR),
-    autoescape=select_autoescape(["html", "xml"]),
-)
-jinja.filters["date"] = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%S").strftime("%A, %B %d, %Y")
+# jinja = Environment(
+#     loader=FileSystemLoader(TEMPLATE_DIR),
+#     autoescape=select_autoescape(["html", "xml"]),
+# )
+# jinja.filters["date"] = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%S").strftime("%A, %B %d, %Y")
 
+#--
+# async def parse_feed(feed_url):
+#     return feedparser.parse(feed_url)
+
+# async def main():
+#     a = datetime.now()
+#     with open(FEED_FILE, "r") as stream:
+#         tasks = [parse_feed(url) for url in yaml.load(stream)]
+#         await asyncio.gather(*tasks)
+#     b = datetime.now()
+#     c = b - a
+#     print(divmod(c.days * 86400 + c.seconds, 60))
+
+# asyncio.run(main())
+#--
+
+#-
+def parse_feed(feed_url, feeds):
+    feeds.append(feedparser.parse(feed_url))
+
+a = datetime.now()
+feeds = []
 with open(FEED_FILE, "r") as stream:
-    for feed_url in yaml.load(stream):
-        feed = feedparser.parse(feed_url)
-        for item in feed["entries"]:
-            m = md5(item["link"].encode("utf-8")).hexdigest()
-            result = connection.execute("SELECT * FROM feeds WHERE url_md5 = :m", { "m": m })
-            if result.fetchone() is None:
-                if "content" in item:
-                    content = item["content"][0]["value"]
-                else:
-                    content = item["summary"]
+    threads = [threading.Thread(target=parse_feed, args=(url, feeds,)) for url in yaml.load(stream)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+b = datetime.now()
+c = b - a
+print(divmod(c.days * 86400 + c.seconds, 60))
+print(len(feeds))
+#-
 
-                if "published_parsed" in item:
-                    date = item["published_parsed"]
-                else:
-                    date = item["updated_parsed"]
-                connection.execute(
-                    """INSERT INTO feeds (
-                        url, url_md5, title, site_url, site_title, date, content
-                    ) VALUES (
-                        :url, :url_md5, :title, :site_url, :site_title, :date, :content
-                    )""", {
-                        "url": item["link"],
-                        "url_md5": m,
-                        "title": item["title"],
-                        "site_url": feed["feed"]["link"],
-                        "site_title": feed["feed"]["title"],
-                        "date": datetime.fromtimestamp(time.mktime(date)).isoformat(),
-                        "content": content
-                    }
-                )
-            result.close()
+#--
+# a = datetime.now()
+# with open(FEED_FILE, "r") as stream:
+#     for feed_url in yaml.load(stream):
+#         feed = feedparser.parse(feed_url)
+# b = datetime.now()
+# c = b - a
+# print(divmod(c.days * 86400 + c.seconds, 60))
+#--
 
-connection.commit()
+#         for item in feed["entries"]:
+#             m = md5(item["link"].encode("utf-8")).hexdigest()
+#             result = connection.execute("SELECT * FROM feeds WHERE url_md5 = :m", { "m": m })
+#             if result.fetchone() is None:
+#                 if "content" in item:
+#                     content = item["content"][0]["value"]
+#                 else:
+#                     content = item["summary"]
 
-template = jinja.get_template("template.html")
-with open("{}/index.html".format(OUTPUT), "wb") as stream:
-    today = connection.execute("SELECT * FROM feeds WHERE date > :today ORDER BY date DESC", {
-        "today": datetime.now().strftime("%Y-%m-%d")
-    })
-    stream.write(template.render(items=today).encode("utf-8"))
-    today.close()
+#                 if "published_parsed" in item:
+#                     date = item["published_parsed"]
+#                 else:
+#                     date = item["updated_parsed"]
+#                 connection.execute(
+#                     """INSERT INTO feeds (
+#                         url, url_md5, title, site_url, site_title, date, content
+#                     ) VALUES (
+#                         :url, :url_md5, :title, :site_url, :site_title, :date, :content
+#                     )""", {
+#                         "url": item["link"],
+#                         "url_md5": m,
+#                         "title": item["title"],
+#                         "site_url": feed["feed"]["link"],
+#                         "site_title": feed["feed"]["title"],
+#                         "date": datetime.fromtimestamp(time.mktime(date)).isoformat(),
+#                         "content": content
+#                     }
+#                 )
+#             result.close()
 
-with open("{}/yesterday.html".format(OUTPUT), "wb") as stream:
-    yesterday = connection.execute("SELECT * FROM feeds WHERE date > :yesterday AND date < :today ORDER BY date DESC", {
-        "yesterday": datetime.strftime(datetime.now() - timedelta(1), "%Y-%m-%d"),
-        "today": datetime.now().strftime("%Y-%m-%d")
-    })
-    stream.write(template.render(items=yesterday).encode("utf-8"))
-    yesterday.close()
+# connection.commit()
 
-with open("{}/latest100.html".format(OUTPUT), "wb") as stream:
-    top100 = connection.execute("SELECT * FROM feeds ORDER BY date DESC LIMIT 100")
-    stream.write(template.render(items=top100).encode("utf-8"))
-    top100.close()
+# template = jinja.get_template("template.html")
+# with open("{}/index.html".format(OUTPUT), "wb") as stream:
+#     today = connection.execute("SELECT * FROM feeds WHERE date > :today ORDER BY date DESC", {
+#         "today": datetime.now().strftime("%Y-%m-%d")
+#     })
+#     stream.write(template.render(items=today, title="Today").encode("utf-8"))
+#     today.close()
 
-connection.close()
+# with open("{}/yesterday.html".format(OUTPUT), "wb") as stream:
+#     yesterday = connection.execute("SELECT * FROM feeds WHERE date > :yesterday AND date < :today ORDER BY date DESC", {
+#         "yesterday": datetime.strftime(datetime.now() - timedelta(1), "%Y-%m-%d"),
+#         "today": datetime.now().strftime("%Y-%m-%d")
+#     })
+#     stream.write(template.render(items=yesterday, title="Yesterday").encode("utf-8"))
+#     yesterday.close()
+
+# with open("{}/latest100.html".format(OUTPUT), "wb") as stream:
+#     latest100 = connection.execute("SELECT * FROM feeds ORDER BY date DESC LIMIT 100")
+#     stream.write(template.render(items=latest100, title="Latest 100").encode("utf-8"))
+#     latest100.close()
+
+# connection.close()
