@@ -83,7 +83,7 @@ with open(FEED_FILE, "r") as stream:
                         "site_url": feed["feed"]["link"],
                         "site_title": feed["feed"]["title"],
                         "date": datetime.fromtimestamp(time.mktime(date)).isoformat(),
-                        "content": item["summary"]
+                        "content": content
                     }
                 )
             result.close()
