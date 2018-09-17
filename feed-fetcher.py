@@ -82,6 +82,11 @@ def check_and_cache_feed(feed, db_connection):
         result = db_connection.execute(
             "SELECT * FROM feeds WHERE url_md5 = :m", {"m": m})
         if result.fetchone() is None:
+            if "title" not in item:
+                title = ""
+            else:
+                title = item["title"]
+
             if "content" in item:
                 content = item["content"][0]["value"]
             else:
@@ -112,7 +117,7 @@ def check_and_cache_feed(feed, db_connection):
                 )""", {
                     "url": item["link"],
                     "url_md5": m,
-                    "title": item["title"],
+                    "title": title,
                     "site_url": feed["feed"]["link"],
                     "site_title": feed["feed"]["title"],
                     "date":
